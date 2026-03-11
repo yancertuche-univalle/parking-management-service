@@ -9,4 +9,5 @@ public interface UsuarioService {
     List<UsuarioListItemResponse> listarUsuarios();
     UsuarioListItemResponse crearUsuario(CrearUsuarioRequest request);
     UsuarioListItemResponse editarUsuario(Long idUsuario, EditarUsuarioRequest request);
+    void eliminarUsuario(Long idUsuario);
 }

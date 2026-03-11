@@ -15,6 +15,8 @@ import com.univalle.parkingmanagementservice.usuario.dto.EditarUsuarioRequest;
 import com.univalle.parkingmanagementservice.usuario.dto.UsuarioListItemResponse;
 import com.univalle.parkingmanagementservice.usuario.service.UsuarioService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -106,6 +108,25 @@ public class UsuarioServiceImpl implements UsuarioService {
                 usuarioActualizado.getNombreUsuario(),
                 usuarioActualizado.getRol().getNombre()
         );
+    }
+    @Override
+    @Transactional
+    public void eliminarUsuario(Long idUsuario) {
+        Usuario usuarioAEliminar = usuarioRepository.findById(idUsuario)
+                .orElseThrow(() -> new IllegalArgumentException("El usuario no existe"));
+
+        String usernameAutenticado = obtenerUsernameAutenticado();
+
+        if (usuarioAEliminar.getNombreUsuario().equals(usernameAutenticado)) {
+            throw new IllegalArgumentException("No puedes eliminar tu propio usuario");
+        }
+
+        usuarioRepository.delete(usuarioAEliminar);
+    }
+
+    private String obtenerUsernameAutenticado() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication.getName();
     }
 
     private UsuarioListItemResponse toResponse(Usuario usuario) {

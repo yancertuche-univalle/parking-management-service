@@ -2,10 +2,7 @@ package com.univalle.parkingmanagementservice.usuario.controller;
 
 import java.util.List;
 
-import com.univalle.parkingmanagementservice.usuario.dto.CrearUsuarioRequest;
-import com.univalle.parkingmanagementservice.usuario.dto.CrearUsuarioResponse;
-import com.univalle.parkingmanagementservice.usuario.dto.EditarUsuarioRequest;
-import com.univalle.parkingmanagementservice.usuario.dto.UsuarioListItemResponse;
+import com.univalle.parkingmanagementservice.usuario.dto.*;
 import com.univalle.parkingmanagementservice.usuario.service.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -48,5 +45,13 @@ public class UsuarioController {
             @Valid @RequestBody EditarUsuarioRequest request
     ) {
         return usuarioService.editarUsuario(idUsuario, request);
+    }
+
+    @DeleteMapping("/{idUsuario}")
+    @Operation(summary = "Eliminar usuario", description = "Elimina un usuario del sistema por su id")
+    @PreAuthorize("hasRole('ROLE_ADMINISTRADOR')")
+    public ResponseEntity<MensajeResponse> eliminarUsuario(@PathVariable Long idUsuario) {
+        usuarioService.eliminarUsuario(idUsuario);
+        return ResponseEntity.ok(new MensajeResponse("Usuario eliminado correctamente"));
     }
 }

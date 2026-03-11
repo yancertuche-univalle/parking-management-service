@@ -8,6 +8,7 @@ import com.univalle.parkingmanagementservice.auth.repositories.UsuarioRepository
 import com.univalle.parkingmanagementservice.usuario.dto.CrearUsuarioRequest;
 import com.univalle.parkingmanagementservice.usuario.dto.EditarUsuarioRequest;
 import com.univalle.parkingmanagementservice.usuario.dto.UsuarioListItemResponse;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +16,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.OffsetDateTime;
@@ -76,6 +80,11 @@ class UsuarioServiceImplTest {
         usuarioExistente.setContrasenaHash("HASH_OLD");
         usuarioExistente.setRol(rolAuxiliar);
         usuarioExistente.setFechaCreacion(OffsetDateTime.now());
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
 
@@ -470,5 +479,60 @@ class UsuarioServiceImplTest {
         );
 
         assertEquals("La contraseña y su confirmación no coinciden", ex.getMessage());
+    }
+
+    @Test
+    void deberiaEliminarUsuarioCorrectamente() {
+        Usuario usuarioAEliminar = new Usuario();
+        usuarioAEliminar.setId(20L);
+        usuarioAEliminar.setNombreUsuario("auxiliar1");
+
+        when(usuarioRepository.findById(20L)).thenReturn(Optional.of(usuarioAEliminar));
+
+        Authentication authentication = new UsernamePasswordAuthenticationToken("admin", null);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        usuarioService.eliminarUsuario(20L);
+
+        verify(usuarioRepository).findById(20L);
+        verify(usuarioRepository).delete(usuarioAEliminar);
+    }
+
+    @Test
+    void deberiaFallarAlEliminarCuandoUsuarioNoExiste() {
+        when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
+
+        Authentication authentication = new UsernamePasswordAuthenticationToken("admin", null);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> usuarioService.eliminarUsuario(99L)
+        );
+
+        assertEquals("El usuario no existe", ex.getMessage());
+        verify(usuarioRepository).findById(99L);
+        verify(usuarioRepository, never()).delete(any());
+    }
+
+    @Test
+    void noDeberiaPermitirAutoEliminacion() {
+        Usuario usuarioAEliminar = new Usuario();
+        usuarioAEliminar.setId(1L);
+        usuarioAEliminar.setNombreUsuario("admin");
+
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAEliminar));
+
+        Authentication authentication = new UsernamePasswordAuthenticationToken("admin", null);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> usuarioService.eliminarUsuario(1L)
+        );
+
+        assertEquals("No puedes eliminar tu propio usuario", ex.getMessage());
+        verify(usuarioRepository).findById(1L);
+        verify(usuarioRepository, never()).delete(any());
     }
 }
